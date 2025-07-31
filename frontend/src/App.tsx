@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import io from 'socket.io-client';
-import DisasterForm from './components/DisasterFrom';
+import DisasterForm from './components/DisasterForm';
 import DisasterList from './components/DisasterList';
 import ReportForm from './components/ReportForm';
 import ResourceMap from './components/ResourceMap';
