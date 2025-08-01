@@ -1,12 +1,18 @@
-const app = require('./src/app');
+import app from './src/app.js';
+// Fix: Correct import for setting values in app
+// Assuming your app.js exports both the app and a set function
+// If not, you'll need to adjust this based on your app.js structure
+
 console.log('What is app:', app);
-const http = require('http');
-const socketIo = require('socket.io');
 
-const PORT = process.env.PORT || 5000;
-const server = http.createServer(app);
+// Fix: Correct import syntax for http and socket.io
+import { createServer } from 'http';
+import { Server as SocketIO } from 'socket.io';
 
-const io = socketIo(server, {
+const PORT = process.env.PORT || 5001;
+const server = createServer(app);
+
+const io = new SocketIO(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
       ? process.env.FRONTEND_URL 

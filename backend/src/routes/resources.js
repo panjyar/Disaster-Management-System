@@ -1,7 +1,7 @@
-const express = require('express');
-const supabase = require('../utils/supabase');
+import { Router } from 'express';
+import supabase from '../utils/supabase.js';
 
-const router = express.Router();
+const router = Router();
 
 // GET /api/resources/:disasterId
 router.get('/:disasterId', async (req, res) => {
@@ -9,6 +9,7 @@ router.get('/:disasterId', async (req, res) => {
     const { disasterId } = req.params;
     const { lat, lng, radius = 10000 } = req.query; // radius in meters
     
+    // Fix: Use supabase.from() instead of from()
     let query = supabase
       .from('resources')
       .select('*')
@@ -66,4 +67,4 @@ router.get('/:disasterId', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

@@ -1,6 +1,6 @@
-const supabase = require('../utils/supabase');
-const GeminiService = require('../services/geminiService');
-const GeocodingService = require('../services/geocodingService');
+import supabase from '../utils/supabase.js';
+import GeminiService from '../services/geminiService.js';
+import GeocodingService from '../services/geocodingService.js';
 
 class DisastersController {
   static async createDisaster(req, res) {
@@ -29,6 +29,7 @@ class DisastersController {
         }
       }
       
+      // Fix: Use supabase.from() instead of from()
       const { data, error } = await supabase
         .from('disasters')
         .insert({
@@ -71,6 +72,7 @@ class DisastersController {
     try {
       const { tag, owner_id, limit = 50, offset = 0 } = req.query;
       
+      // Fix: Use supabase.from() instead of from()
       let query = supabase
         .from('disasters')
         .select('*')
@@ -105,6 +107,7 @@ class DisastersController {
       const { title, location_name, description, tags, user_id = 'anonymous' } = req.body;
       
       // Get current disaster for audit trail
+      // Fix: Use supabase.from() instead of from()
       const { data: currentDisaster } = await supabase
         .from('disasters')
         .select('audit_trail')
@@ -125,6 +128,7 @@ class DisastersController {
         }
       }
       
+      // Fix: Use supabase.from() instead of from()
       const { data, error } = await supabase
         .from('disasters')
         .update({
@@ -172,6 +176,7 @@ class DisastersController {
       const { id } = req.params;
       const { user_id = 'anonymous' } = req.body;
       
+      // Fix: Use supabase.from() instead of from()
       const { error } = await supabase
         .from('disasters')
         .delete()
@@ -198,4 +203,4 @@ class DisastersController {
   }
 }
 
-module.exports = DisastersController;
+export default DisastersController;

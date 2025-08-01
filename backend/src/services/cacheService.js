@@ -1,4 +1,4 @@
-const supabase = require('../utils/supabase');
+import supabase from '../utils/supabase.js';
 
 class CacheService {
   static async get(key) {
@@ -55,4 +55,4 @@ class CacheService {
   }
 }
 
-module.exports = CacheService;
+export default CacheService;

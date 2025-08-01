@@ -1,4 +1,4 @@
-const CacheService = require('./cacheService');
+import CacheService from './cacheService.js';
 
 class SocialMediaService {
   static async fetchDisasterReports(disasterId, tags = []) {
@@ -69,4 +69,4 @@ class SocialMediaService {
   }
 }
 
-module.exports = SocialMediaService;
+export default SocialMediaService;

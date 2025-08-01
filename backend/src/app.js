@@ -1,35 +1,45 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
-const morgan = require('morgan');
-require('dotenv').config();
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
 
-const disasterRoutes = require('./routes/disasters');
-const geocodeRoutes = require('./routes/geocode');
-const socialMediaRoutes = require('./routes/socialMedia');
-const resourceRoutes = require('./routes/resources');
-const verificationRoutes = require('./routes/verification');
+// Import routes
+import disastersRouter from './routes/disasters.js';
+import resourcesRouter from './routes/resources.js';
+import socialMediaRouter from './routes/socialMedia.js';
+import geocodeRouter from './routes/geocode.js';
+import verificationRouter from './routes/verification.js';
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 
 // Middleware
-app.use(helmet());
 app.use(cors());
-app.use(morgan('combined'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
-app.use('/api/disasters', disasterRoutes);
-app.use('/api/geocode', geocodeRoutes);
-app.use('/api/social-media', socialMediaRoutes);
-app.use('/api/resources', resourceRoutes);
-app.use('/api/verification', verificationRoutes);
+app.use('/api/disasters', disastersRouter);
+app.use('/api/resources', resourcesRouter);
+app.use('/api/social-media', socialMediaRouter);
+app.use('/api/geocode', geocodeRouter);
+app.use('/api/verification', verificationRouter);
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).json({ error: 'Something went wrong!' });
 });
-console.log('Exporting Express app...');
-module.exports = app;
+
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({ error: 'Route not found' });
+});
+
+export default app;

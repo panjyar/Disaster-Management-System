@@ -1,5 +1,5 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const CacheService = require('./cacheService');
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import CacheService from './cacheService.js';
 
 // Initialize Gemini AI (will be null if no API key)
 let genAI = null;
@@ -114,4 +114,4 @@ Examples:
   }
 }
 
-module.exports = GeminiService;
+export default GeminiService;

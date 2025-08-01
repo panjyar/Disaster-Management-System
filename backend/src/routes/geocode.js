@@ -1,8 +1,8 @@
-const express = require('express');
-const GeminiService = require('../services/geminiService');
-const GeocodingService = require('../services/geocodingService');
+import { Router } from 'express';
+import GeminiService from '../services/geminiService.js';
+import GeocodingService from '../services/geocodingService.js';
 
-const router = express.Router();
+const router = Router();
 
 // POST /api/geocode
 router.post('/', async (req, res) => {
@@ -39,4 +39,4 @@ router.post('/', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

@@ -1,5 +1,5 @@
-const axios = require('axios');
-const CacheService = require('./cacheService');
+import axios from 'axios';
+import CacheService from './cacheService.js';
 
 class GeocodingService {
   static async geocodeLocation(locationName) {
@@ -11,6 +11,7 @@ class GeocodingService {
     try {
       // Try Google Maps first if API key is available
       if (process.env.GOOGLE_MAPS_API_KEY) {
+        // Fix: Use axios.get instead of just get
         const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
           params: {
             address: locationName,
@@ -32,6 +33,7 @@ class GeocodingService {
       }
       
       // Fallback to OpenStreetMap Nominatim (free)
+      // Fix: Use axios.get instead of just get
       const response = await axios.get('https://nominatim.openstreetmap.org/search', {
         params: {
           q: locationName,
@@ -63,4 +65,4 @@ class GeocodingService {
   }
 }
 
-module.exports = GeocodingService;
+export default GeocodingService;
