@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import  verifyImage  from '../services/geminiService.js';
+import GeminiService from '../services/geminiService.js';
 
 const router = Router();
 
@@ -12,7 +12,7 @@ router.post('/verify-image', async (req, res) => {
       return res.status(400).json({ error: 'Image URL is required' });
     }
     
-    const verification = await verifyImage(image_url, context);
+    const verification = await GeminiService.verifyImage(image_url, context);
     
     res.json(verification);
   } catch (error) {
