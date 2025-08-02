@@ -11,7 +11,6 @@ class DisastersController {
         return res.status(400).json({ error: 'Title and description are required' });
       }
       
-      // Extract location if not provided
       let finalLocationName = location_name;
       if (!finalLocationName && description) {
         const extractedLocations = await GeminiService.extractLocation(description);
@@ -20,7 +19,6 @@ class DisastersController {
         }
       }
       
-      // Geocode location
       let coordinates = null;
       if (finalLocationName) {
         const geocoded = await GeocodingService.geocodeLocation(finalLocationName);
@@ -29,7 +27,6 @@ class DisastersController {
         }
       }
       
-      // Fix: Use supabase.from() instead of from()
       const { data, error } = await supabase
         .from('disasters')
         .insert({
@@ -106,8 +103,6 @@ class DisastersController {
       const { id } = req.params;
       const { title, location_name, description, tags, user_id = 'anonymous' } = req.body;
       
-      // Get current disaster for audit trail
-      // Fix: Use supabase.from() instead of from()
       const { data: currentDisaster } = await supabase
         .from('disasters')
         .select('audit_trail')
@@ -128,7 +123,6 @@ class DisastersController {
         }
       }
       
-      // Fix: Use supabase.from() instead of from()
       const { data, error } = await supabase
         .from('disasters')
         .update({
@@ -156,7 +150,6 @@ class DisastersController {
         return res.status(400).json({ error: error.message });
       }
       
-      // Emit real-time update
       const io = req.app.get('io');
       if (io) {
         io.emit('disaster_updated', data);
@@ -176,7 +169,6 @@ class DisastersController {
       const { id } = req.params;
       const { user_id = 'anonymous' } = req.body;
       
-      // Fix: Use supabase.from() instead of from()
       const { error } = await supabase
         .from('disasters')
         .delete()
@@ -187,7 +179,6 @@ class DisastersController {
         return res.status(400).json({ error: error.message });
       }
       
-      // Emit real-time update
       const io = req.app.get('io');
       if (io) {
         io.emit('disaster_deleted', { id });
