@@ -4,14 +4,33 @@ import GeocodingService from '../services/geocodingService.js';
 
 const router = Router();
 
-// POST /api/geocode
+// NEW: GET /api/geocode - API information
+router.get('/', (req, res) => {
+  res.json({
+    message: 'Geocoding API - Convert location names to coordinates',
+    endpoints: {
+      'POST /api/geocode': 'Geocode a location name or extract from description'
+    },
+    required_fields: {
+      'location_name': 'string (optional if description provided)',
+      'description': 'string (optional if location_name provided)'
+    },
+    example_request: {
+      method: 'POST',
+      body: {
+        location_name: 'New York, NY'
+      }
+    }
+  });
+});
+
+// EXISTING: POST /api/geocode
 router.post('/', async (req, res) => {
   try {
     const { description, location_name } = req.body;
     
     let locationToGeocode = location_name;
     
-    // Extract location if not provided
     if (!locationToGeocode && description) {
       const extractedLocations = await GeminiService.extractLocation(description);
       if (extractedLocations.length > 0) {

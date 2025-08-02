@@ -9,7 +9,6 @@ import socialMediaRouter from './routes/socialMedia.js';
 import geocodeRouter from './routes/geocode.js';
 import verificationRouter from './routes/verification.js';
 
-// Load environment variables
 dotenv.config();
 
 const app = express();
@@ -41,5 +40,6 @@ app.use((err, req, res, next) => {
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
+
 
 export default app;

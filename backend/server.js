@@ -1,9 +1,4 @@
 import app from './src/app.js';
-// Fix: Correct import for setting values in app
-// Assuming your app.js exports both the app and a set function
-// If not, you'll need to adjust this based on your app.js structure
-
-console.log('What is app:', app);
 
 // Fix: Correct import syntax for http and socket.io
 import { createServer } from 'http';
