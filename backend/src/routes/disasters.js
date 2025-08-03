@@ -7,5 +7,6 @@ router.get('/', DisastersController.getDisasters);
 router.post('/', DisastersController.createDisaster);
 router.put('/:id', DisastersController.updateDisaster);
 router.delete('/:id', DisastersController.deleteDisaster);
+router.post('/:id/reports', DisastersController.createReport);
 
 export default router;

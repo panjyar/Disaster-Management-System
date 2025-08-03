@@ -3,8 +3,7 @@ import { createServer } from 'http';
 import { Server as SocketIO } from 'socket.io';
 import listEndpoints from 'express-list-endpoints';
 
-console.log(listEndpoints(app)); // ✅ This now works with ESM
-
+console.log(listEndpoints(app)); 
 const PORT = process.env.PORT || 5001;
 const server = createServer(app);
 
@@ -14,6 +13,7 @@ const io = new SocketIO(server, {
       ? process.env.FRONTEND_URL 
       : "http://localhost:3000",
     methods: ["GET", "POST"]
+    
   }
 });
 

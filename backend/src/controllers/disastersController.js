@@ -50,7 +50,6 @@ class DisastersController {
         return res.status(400).json({ error: error.message });
       }
       
-      // Emit real-time update
       const io = req.app.get('io');
       if (io) {
         io.emit('disaster_created', data);
@@ -69,7 +68,6 @@ class DisastersController {
     try {
       const { tag, owner_id, limit = 50, offset = 0 } = req.query;
       
-      // Fix: Use supabase.from() instead of from()
       let query = supabase
         .from('disasters')
         .select('*')
@@ -192,6 +190,39 @@ class DisastersController {
       res.status(500).json({ error: 'Internal server error' });
     }
   }
+  // Add this new method inside the DisastersController class
+static async createReport(req, res) {
+  try {
+    const { id } = req.params;
+    const { content, image_url, user_id } = req.body;
+    
+    // Validate request body
+    if (!content) {
+      return res.status(400).json({ error: 'Report content is required' });
+    }
+    
+    // In a real implementation, you would save this report to the database.
+    // For this example, we will just return a success message.
+    
+    // Hypothetical DB insert logic:
+    // const { data, error } = await supabase.from('reports').insert({ disaster_id: id, content, image_url, user_id });
+
+    console.log(`New report for disaster ${id} from user ${user_id}`);
+    res.status(201).json({
+      message: 'Report submitted successfully!',
+      report: {
+        disaster_id: id,
+        content,
+        image_url,
+        user_id
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating report:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+}
 }
 
 export default DisastersController;
