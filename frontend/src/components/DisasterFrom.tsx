@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import axios from 'axios';
+import { Button } from './ui/Button';
+import { Icon } from './ui/Icon';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -56,131 +57,204 @@ const DisasterForm: React.FC = () => {
     setFormData(prev => ({ ...prev, tags }));
   };
 
+  const presetTags = [
+    { label: 'Flood', value: 'flood', icon: 'Waves' as const },
+    { label: 'Earthquake', value: 'earthquake', icon: 'Mountain' as const },
+    { label: 'Fire', value: 'fire', icon: 'Flame' as const },
+    { label: 'Medical', value: 'medical', icon: 'Heart' as const },
+    { label: 'Shelter', value: 'shelter', icon: 'Home' as const },
+    { label: 'Urgent', value: 'urgent', icon: 'Zap' as const },
+  ];
+
+  const addPresetTag = (tag: string) => {
+    if (!formData.tags.includes(tag)) {
+      setFormData(prev => ({ ...prev, tags: [...prev.tags, tag] }));
+    }
+  };
+
+  const removeTag = (tagToRemove: string) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      tags: prev.tags.filter(tag => tag !== tagToRemove) 
+    }));
+  };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Title Input */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Disaster Title *
-        </label>
-        <input
-          type="text"
-          value={formData.title}
-          onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-          required
-          placeholder="e.g., NYC Flooding Emergency"
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-        />
-      </div>
-
-      {/* Location Input */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Location
-        </label>
-        <div className="relative">
-          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            value={formData.location_name}
-            onChange={(e) => setFormData(prev => ({ ...prev, location_name: e.target.value }))}
-            placeholder="e.g., Manhattan, NYC"
-            className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-          />
-        </div>
-      </div>
-
-      {/* Description Textarea */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Description *
-        </label>
-        <textarea
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          required
-          rows={4}
-          placeholder="Describe the disaster situation, including location if not specified above..."
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
-        />
-      </div>
-
-      {/* Tags Input */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Tags
-        </label>
-        <input
-          type="text"
-          value={formData.tags.join(', ')}
-          onChange={handleTagsChange}
-          placeholder="flood, urgent, evacuation (comma-separated)"
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-        />
-      </div>
-
-      {/* Reporter Select */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Reporter ID
-        </label>
-        <select
-          value={formData.owner_id}
-          onChange={(e) => setFormData(prev => ({ ...prev, owner_id: e.target.value }))}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-        >
-          <option value="netrunnerX">netrunnerX</option>
-          <option value="reliefAdmin">reliefAdmin</option>
-          <option value="citizen1">citizen1</option>
-          <option value="volunteer">volunteer</option>
-        </select>
-      </div>
-
-      {/* Submit Button */}
-      <motion.button
-        type="submit"
-        disabled={loading}
-        whileHover={{ scale: loading ? 1 : 1.02 }}
-        whileTap={{ scale: loading ? 1 : 0.98 }}
-        className="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {loading ? (
-          <>
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"
-            />
-            Reporting...
-          </>
-        ) : (
-          <>
-            <Send className="w-4 h-4 mr-2" />
-            Report Disaster
-          </>
-        )}
-      </motion.button>
-
-      {/* Message */}
+    <motion.form
+      onSubmit={handleSubmit}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
       {message.text && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`p-3 rounded-lg flex items-center space-x-2 ${
+          className={`p-4 rounded-lg flex items-center gap-2 ${
             message.type === 'success' 
               ? 'bg-green-50 text-green-800 border border-green-200' 
               : 'bg-red-50 text-red-800 border border-red-200'
           }`}
         >
-          {message.type === 'success' ? (
-            <CheckCircle className="w-4 h-4" />
-          ) : (
-            <AlertCircle className="w-4 h-4" />
-          )}
-          <span className="text-sm">{message.text}</span>
+          <Icon 
+            name={message.type === 'success' ? 'CheckCircle' : 'AlertCircle'} 
+            size="sm" 
+          />
+          {message.text}
         </motion.div>
       )}
-    </form>
+
+      <div className="form-group">
+        <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+          <Icon name="FileText" size="xs" className="inline mr-1" />
+          Disaster Title *
+        </label>
+        <input
+          type="text"
+          id="title"
+          value={formData.title}
+          onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+          placeholder="Brief description of the disaster"
+          required
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+        />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-2">
+          <Icon name="MapPin" size="xs" className="inline mr-1" />
+          Location *
+        </label>
+        <input
+          type="text"
+          id="location"
+          value={formData.location_name}
+          onChange={(e) => setFormData(prev => ({ ...prev, location_name: e.target.value }))}
+          placeholder="City, region, or specific address"
+          required
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+        />
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+          <Icon name="AlignLeft" size="xs" className="inline mr-1" />
+          Description *
+        </label>
+        <textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+          placeholder="Detailed description of the situation, affected areas, and immediate needs"
+          required
+          rows={4}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all resize-none"
+        />
+      </div>
+
+      <div className="form-group">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          <Icon name="Tag" size="xs" className="inline mr-1" />
+          Categories
+        </label>
+        
+        <div className="mb-3">
+          <div className="grid grid-cols-2 gap-2">
+            {presetTags.map((tag) => (
+              <Button
+                key={tag.value}
+                type="button"
+                variant={formData.tags.includes(tag.value) ? 'primary' : 'ghost'}
+                size="sm"
+                icon={tag.icon}
+                onClick={() => addPresetTag(tag.value)}
+                className="justify-start"
+              >
+                {tag.label}
+              </Button>
+            ))}
+          </div>
+        </div>
+
+        {formData.tags.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {formData.tags.map((tag) => (
+              <motion.span
+                key={tag}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+              >
+                {tag}
+                <button
+                  type="button"
+                  onClick={() => removeTag(tag)}
+                  className="hover:bg-blue-200 rounded-full p-0.5 transition-colors"
+                >
+                  <Icon name="X" size="xs" />
+                </button>
+              </motion.span>
+            ))}
+          </div>
+        )}
+
+        <input
+          type="text"
+          value={formData.tags.join(', ')}
+          onChange={handleTagsChange}
+          placeholder="Or type custom tags separated by commas"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+        />
+        <p className="text-xs text-gray-500 mt-1">
+          Use tags like: flood, urgent, evacuation, medical, shelter
+        </p>
+      </div>
+
+      <div className="form-group">
+        <label htmlFor="owner" className="block text-sm font-medium text-gray-700 mb-2">
+          <Icon name="User" size="xs" className="inline mr-1" />
+          Reporter ID
+        </label>
+        <input
+          type="text"
+          id="owner"
+          value={formData.owner_id}
+          onChange={(e) => setFormData(prev => ({ ...prev, owner_id: e.target.value }))}
+          placeholder="Your identifier"
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+        />
+      </div>
+
+      <div className="flex gap-3">
+        <Button
+          type="submit"
+          variant="primary"
+          size="lg"
+          icon="Send"
+          loading={loading}
+          className="flex-1"
+        >
+          Report Disaster
+        </Button>
+        
+        <Button
+          type="button"
+          variant="ghost"
+          size="lg"
+          icon="RotateCcw"
+          onClick={() => setFormData({
+            title: '',
+            location_name: '',
+            description: '',
+            tags: [],
+            owner_id: 'netrunnerX'
+          })}
+        >
+          Clear
+        </Button>
+      </div>
+    </motion.form>
   );
 };
 
