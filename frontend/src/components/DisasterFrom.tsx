@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { MapPin, Send, CheckCircle, AlertCircle, Tag } from 'lucide-react';
 import axios from 'axios';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
@@ -37,11 +37,7 @@ const DisasterForm: React.FC = () => {
       
       setMessage({ type: 'success', text: 'Disaster reported successfully!' });
       setFormData({
-        title: '',
-        location_name: '',
-        description: '',
-        tags: [],
-        owner_id: 'netrunnerX'
+        title: '', location_name: '', description: '', tags: [], owner_id: 'netrunnerX'
       });
     } catch (error) {
       console.error('Error creating disaster:', error);
@@ -57,130 +53,106 @@ const DisasterForm: React.FC = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Title Input */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Disaster Title *
-        </label>
-        <input
-          type="text"
-          value={formData.title}
-          onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-          required
-          placeholder="e.g., NYC Flooding Emergency"
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-        />
-      </div>
-
-      {/* Location Input */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Location
-        </label>
-        <div className="relative">
-          <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+    <div className="card">
+      <h2 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        📢 Report New Disaster
+      </h2>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div>
+          <label htmlFor="title" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Title *</label>
           <input
+            id="title"
             type="text"
-            value={formData.location_name}
-            onChange={(e) => setFormData(prev => ({ ...prev, location_name: e.target.value }))}
-            placeholder="e.g., Manhattan, NYC"
-            className="w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+            value={formData.title}
+            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+            required
+            placeholder="e.g., NYC Flooding Emergency"
+            className="form-input"
           />
         </div>
-      </div>
 
-      {/* Description Textarea */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Description *
-        </label>
-        <textarea
-          value={formData.description}
-          onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-          required
-          rows={4}
-          placeholder="Describe the disaster situation, including location if not specified above..."
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 resize-none"
-        />
-      </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+          <div>
+            <label htmlFor="location" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Location</label>
+            <div style={{ position: 'relative' }}>
+              <MapPin style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', color: '#9ca3af', pointerEvents: 'none' }} />
+              <input
+                id="location"
+                type="text"
+                value={formData.location_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, location_name: e.target.value }))}
+                placeholder="e.g., Manhattan, NYC"
+                className="form-input"
+                style={{ paddingLeft: '2.5rem' }}
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor="tags" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Tags</label>
+            <div style={{ position: 'relative' }}>
+              <Tag style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', color: '#9ca3af', pointerEvents: 'none' }} />
+              <input
+                id="tags"
+                type="text"
+                value={formData.tags.join(', ')}
+                onChange={handleTagsChange}
+                placeholder="flood, urgent (comma-separated)"
+                className="form-input"
+                style={{ paddingLeft: '2.5rem' }}
+              />
+            </div>
+          </div>
+        </div>
 
-      {/* Tags Input */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Tags
-        </label>
-        <input
-          type="text"
-          value={formData.tags.join(', ')}
-          onChange={handleTagsChange}
-          placeholder="flood, urgent, evacuation (comma-separated)"
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
-        />
-      </div>
+        <div>
+          <label htmlFor="description" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Description *</label>
+          <textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+            required
+            rows={4}
+            placeholder="Describe the disaster situation..."
+            className="form-input"
+          />
+        </div>
 
-      {/* Reporter Select */}
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Reporter ID
-        </label>
-        <select
-          value={formData.owner_id}
-          onChange={(e) => setFormData(prev => ({ ...prev, owner_id: e.target.value }))}
-          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+        <motion.button
+          type="submit"
+          disabled={loading}
+          whileHover={{ scale: loading ? 1 : 1.02 }}
+          whileTap={{ scale: loading ? 1 : 0.98 }}
+          className="btn btn-primary"
         >
-          <option value="netrunnerX">netrunnerX</option>
-          <option value="reliefAdmin">reliefAdmin</option>
-          <option value="citizen1">citizen1</option>
-          <option value="volunteer">volunteer</option>
-        </select>
-      </div>
-
-      {/* Submit Button */}
-      <motion.button
-        type="submit"
-        disabled={loading}
-        whileHover={{ scale: loading ? 1 : 1.02 }}
-        whileTap={{ scale: loading ? 1 : 0.98 }}
-        className="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {loading ? (
-          <>
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="w-4 h-4 border-2 border-current border-t-transparent rounded-full mr-2"
-            />
-            Reporting...
-          </>
-        ) : (
-          <>
-            <Send className="w-4 h-4 mr-2" />
-            Report Disaster
-          </>
-        )}
-      </motion.button>
-
-      {/* Message */}
-      {message.text && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`p-3 rounded-lg flex items-center space-x-2 ${
-            message.type === 'success' 
-              ? 'bg-green-50 text-green-800 border border-green-200' 
-              : 'bg-red-50 text-red-800 border border-red-200'
-          }`}
-        >
-          {message.type === 'success' ? (
-            <CheckCircle className="w-4 h-4" />
+          {loading ? (
+            <>
+              <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                style={{ width: '16px', height: '16px', borderWidth: '2px', borderStyle: 'solid', borderColor: 'currentColor', borderTopColor: 'transparent', borderRadius: '50%' }}
+              />
+              Reporting...
+            </>
           ) : (
-            <AlertCircle className="w-4 h-4" />
+            <>
+              <Send width={16} />
+              Report Disaster
+            </>
           )}
-          <span className="text-sm">{message.text}</span>
-        </motion.div>
-      )}
-    </form>
+        </motion.button>
+
+        {message.text && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={`alert ${message.type === 'success' ? 'alert-success' : 'alert-error'}`}
+          >
+            {message.type === 'success' ? <CheckCircle width={18} /> : <AlertCircle width={18} />}
+            <span>{message.text}</span>
+          </motion.div>
+        )}
+      </form>
+    </div>
   );
 };
 

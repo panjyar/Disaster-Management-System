@@ -31,7 +31,7 @@ interface ResourceMapProps {
 declare global {
   interface Window {
     google: any;
-    initMap: () => void;
+    initGoogleMap?: () => void;
   }
 }
 
@@ -40,9 +40,11 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ disaster }) => {
   const [loading, setLoading] = useState(false);
   const [coordinates, setCoordinates] = useState<Coordinates | null>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapError, setMapError] = useState<string>('');
   const mapRef = useRef<HTMLDivElement>(null);
   const googleMapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
+  const scriptLoadedRef = useRef<boolean>(false);
 
   useEffect(() => {
     fetchResources();
@@ -63,7 +65,7 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ disaster }) => {
     // Check if API key is available
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
     if (!apiKey || apiKey === 'YOUR_API_KEY') {
-      console.warn('Google Maps API key not configured. Please set REACT_APP_GOOGLE_MAPS_API_KEY in your environment variables.');
+      setMapError('Google Maps API key not configured. Please set REACT_APP_GOOGLE_MAPS_API_KEY in your environment variables.');
       return;
     }
 
@@ -74,118 +76,138 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ disaster }) => {
     }
 
     // Check if script is already being loaded
-    if (document.querySelector('script[src*="maps.googleapis.com"]')) {
+    if (scriptLoadedRef.current || document.querySelector('script[src*="maps.googleapis.com"]')) {
       return;
     }
 
-    // Create script element
+    scriptLoadedRef.current = true;
+
+    // Create script element with proper callback
     const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&loading=async`;
+    const callbackName = `initGoogleMap_${Date.now()}`;
+    
+    // Set up the callback function
+    (window as any)[callbackName] = () => {
+      setMapLoaded(true);
+      delete (window as any)[callbackName];
+    };
+    
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=${callbackName}&loading=async`;
     script.async = true;
     script.defer = true;
     
-    window.initMap = () => {
-      setMapLoaded(true);
-    };
-    
-    script.onload = () => {
-      setMapLoaded(true);
-    };
-    
     script.onerror = () => {
-      console.error('Google Maps failed to load. Please check your API key and network connection.');
+      setMapError('Google Maps failed to load. Please check your API key and network connection.');
+      scriptLoadedRef.current = false;
     };
     
     document.head.appendChild(script);
   };
 
   const initializeMap = () => {
-    if (!mapRef.current || !coordinates || !window.google) return;
+    if (!mapRef.current || !coordinates || !window.google?.maps) return;
 
-    // Clear existing markers
-    markersRef.current.forEach(marker => marker.setMap(null));
-    markersRef.current = [];
+    try {
+      // Clear existing markers
+      markersRef.current.forEach(marker => {
+        if (marker.setMap) marker.setMap(null);
+      });
+      markersRef.current = [];
 
-    // Initialize map
-    const map = new window.google.maps.Map(mapRef.current, {
-      center: { lat: coordinates.lat, lng: coordinates.lng },
-      zoom: 13,
-      styles: [
-        {
-          featureType: 'poi',
-          elementType: 'labels',
-          stylers: [{ visibility: 'on' }]
-        }
-      ]
-    });
-
-    googleMapRef.current = map;
-
-    // Add disaster location marker
-    const disasterMarker = new window.google.maps.marker.AdvancedMarkerElement({
-      position: { lat: coordinates.lat, lng: coordinates.lng },
-      map: map,
-      title: disaster.title,
-      content: createMarkerContent('⚠️', '#ff4444', 32)
-    });
-
-    const disasterInfoWindow = new window.google.maps.InfoWindow({
-      content: `
-        <div style="padding: 10px;">
-          <h3 style="margin: 0 0 10px 0; color: #333;">${disaster.title}</h3>
-          <p style="margin: 0; color: #666;"><strong>Location:</strong> ${disaster.location_name}</p>
-          <p style="margin: 5px 0 0 0; color: #666;"><strong>Type:</strong> Disaster Zone</p>
-        </div>
-      `
-    });
-
-    disasterMarker.addListener('click', () => {
-      disasterInfoWindow.open(map, disasterMarker);
-    });
-
-    markersRef.current.push(disasterMarker);
-
-    // Add resource markers
-    resources.forEach((resource, index) => {
-      // Generate random coordinates near the disaster location for demo
-      const offsetLat = (Math.random() - 0.5) * 0.02;
-      const offsetLng = (Math.random() - 0.5) * 0.02;
-      
-      const resourceMarker = new window.google.maps.marker.AdvancedMarkerElement({
-        position: { 
-          lat: coordinates.lat + offsetLat, 
-          lng: coordinates.lng + offsetLng 
-        },
-        map: map,
-        title: resource.name,
-        content: createMarkerContent(getResourceIcon(resource.type), getResourceColor(resource.type), 24)
+      // Initialize map
+      const map = new window.google.maps.Map(mapRef.current, {
+        center: { lat: coordinates.lat, lng: coordinates.lng },
+        zoom: 13,
+        styles: [
+          {
+            featureType: 'poi',
+            elementType: 'labels',
+            stylers: [{ visibility: 'on' }]
+          }
+        ]
       });
 
-      const resourceInfoWindow = new window.google.maps.InfoWindow({
+      googleMapRef.current = map;
+
+      // Add disaster location marker (using standard marker for compatibility)
+      const disasterMarker = new window.google.maps.Marker({
+        position: { lat: coordinates.lat, lng: coordinates.lng },
+        map: map,
+        title: disaster.title,
+        icon: {
+          url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(createMarkerSVG('⚠️', '#ff4444')),
+          scaledSize: new window.google.maps.Size(32, 32)
+        }
+      });
+
+      const disasterInfoWindow = new window.google.maps.InfoWindow({
         content: `
-          <div style="padding: 10px;">
-            <h4 style="margin: 0 0 10px 0; color: #333;">${resource.name}</h4>
-            <p style="margin: 0; color: #666;"><strong>Type:</strong> ${resource.type}</p>
-            <p style="margin: 5px 0 0 0; color: #666;"><strong>Location:</strong> ${resource.location_name}</p>
+          <div style="padding: 10px; max-width: 200px;">
+            <h3 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">${disaster.title}</h3>
+            <p style="margin: 0; color: #666; font-size: 12px;"><strong>Location:</strong> ${disaster.location_name}</p>
+            <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;"><strong>Type:</strong> Disaster Zone</p>
           </div>
         `
       });
 
-      resourceMarker.addListener('click', () => {
-        resourceInfoWindow.open(map, resourceMarker);
+      disasterMarker.addListener('click', () => {
+        disasterInfoWindow.open(map, disasterMarker);
       });
 
-      markersRef.current.push(resourceMarker);
-    });
+      markersRef.current.push(disasterMarker);
+
+      // Add resource markers
+      resources.forEach((resource) => {
+        // Generate random coordinates near the disaster location for demo
+        const offsetLat = (Math.random() - 0.5) * 0.02;
+        const offsetLng = (Math.random() - 0.5) * 0.02;
+        
+        const resourceMarker = new window.google.maps.Marker({
+          position: { 
+            lat: coordinates.lat + offsetLat, 
+            lng: coordinates.lng + offsetLng 
+          },
+          map: map,
+          title: resource.name,
+          icon: {
+            url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(
+              createMarkerSVG(getResourceIcon(resource.type), getResourceColor(resource.type))
+            ),
+            scaledSize: new window.google.maps.Size(24, 24)
+          }
+        });
+
+        const resourceInfoWindow = new window.google.maps.InfoWindow({
+          content: `
+            <div style="padding: 10px; max-width: 200px;">
+              <h4 style="margin: 0 0 10px 0; color: #333; font-size: 14px;">${resource.name}</h4>
+              <p style="margin: 0; color: #666; font-size: 12px;"><strong>Type:</strong> ${resource.type}</p>
+              <p style="margin: 5px 0 0 0; color: #666; font-size: 12px;"><strong>Location:</strong> ${resource.location_name}</p>
+            </div>
+          `
+        });
+
+        resourceMarker.addListener('click', () => {
+          resourceInfoWindow.open(map, resourceMarker);
+        });
+
+        markersRef.current.push(resourceMarker);
+      });
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      setMapError('Failed to initialize map. Please try refreshing the page.');
+    }
   };
 
   const fetchResources = async () => {
     setLoading(true);
     try {
       const response = await axios.get(`${API_URL}/api/resources/${disaster.id}`);
-      setResources(response.data);
+      const resourceData = Array.isArray(response.data) ? response.data : [];
+      setResources(resourceData);
     } catch (error) {
       console.error('Error fetching resources:', error);
+      setResources([]);
     } finally {
       setLoading(false);
     }
@@ -232,23 +254,13 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ disaster }) => {
     }
   };
 
-  const createMarkerContent = (icon: string, color: string, size: number) => {
-    const markerDiv = document.createElement('div');
-    markerDiv.style.cssText = `
-      width: ${size}px;
-      height: ${size}px;
-      background-color: ${color};
-      border: 2px solid white;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: ${size * 0.5}px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-      cursor: pointer;
+  const createMarkerSVG = (icon: string, color: string) => {
+    return `
+      <svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="16" cy="16" r="12" fill="${color}" stroke="white" stroke-width="2"/>
+        <text x="16" y="20" text-anchor="middle" font-size="12" fill="white">${icon}</text>
+      </svg>
     `;
-    markerDiv.textContent = icon;
-    return markerDiv;
   };
 
   const refreshResources = () => {
@@ -293,19 +305,39 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ disaster }) => {
       {/* Google Maps Container */}
       <div className="map-container">
         <div ref={mapRef} className="google-map" style={{ width: '100%', height: '400px' }}>
-          {!mapLoaded && (
-            <div className="map-loading">
-              {!process.env.REACT_APP_GOOGLE_MAPS_API_KEY || process.env.REACT_APP_GOOGLE_MAPS_API_KEY === 'YOUR_API_KEY' ? (
-                <div>
-                  <p>⚠️ Google Maps API key not configured</p>
-                  <small>Please set REACT_APP_GOOGLE_MAPS_API_KEY in your environment variables</small>
-                </div>
-              ) : (
-                <div>
-                  <p>Loading Google Maps...</p>
-                  <div className="loading-spinner"></div>
-                </div>
-              )}
+          {mapError && (
+            <div className="map-error" style={{ 
+              padding: '20px', 
+              textAlign: 'center', 
+              background: '#ffebee', 
+              color: '#c62828',
+              border: '1px solid #ef9a9a',
+              borderRadius: '4px'
+            }}>
+              <p>⚠️ {mapError}</p>
+            </div>
+          )}
+          {!mapLoaded && !mapError && (
+            <div className="map-loading" style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              background: '#f5f5f5',
+              color: '#666'
+            }}>
+              <div>
+                <p>Loading Google Maps...</p>
+                <div className="loading-spinner" style={{
+                  width: '20px',
+                  height: '20px',
+                  border: '2px solid #ccc',
+                  borderTop: '2px solid #666',
+                  borderRadius: '50%',
+                  animation: 'spin 1s linear infinite',
+                  margin: '0 auto'
+                }}></div>
+              </div>
             </div>
           )}
         </div>
@@ -345,7 +377,7 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ disaster }) => {
           <div className="loading">Loading resources...</div>
         ) : resources.length > 0 ? (
           <div className="resources-list">
-            {resources.map(resource => (
+            {resources.map((resource, index) => (
               <div key={resource.id} className="resource-item">
                 <div className="resource-header">
                   <span className="resource-icon">
@@ -365,11 +397,14 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ disaster }) => {
                 <div className="resource-actions">
                   <button 
                     onClick={() => {
-                      if (googleMapRef.current) {
-                        // Find marker for this resource and trigger click
-                        const resourceIndex = resources.findIndex(r => r.id === resource.id);
-                        if (markersRef.current[resourceIndex + 1]) { // +1 because first marker is disaster
-                          window.google.maps.event.trigger(markersRef.current[resourceIndex + 1], 'click');
+                      if (googleMapRef.current && markersRef.current[index + 1]) {
+                        // Focus on this resource marker (index + 1 because disaster marker is at index 0)
+                        const marker = markersRef.current[index + 1];
+                        googleMapRef.current.setCenter(marker.getPosition());
+                        googleMapRef.current.setZoom(15);
+                        // Trigger the info window
+                        if (window.google?.maps?.event) {
+                          window.google.maps.event.trigger(marker, 'click');
                         }
                       }
                     }}
@@ -388,6 +423,15 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ disaster }) => {
           </div>
         )}
       </div>
+
+      <style>
+        {`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}
+      </style>
     </div>
   );
 };

@@ -72,15 +72,18 @@ function App() {
       socket.off('disaster_deleted');
       socket.off('resources_updated');
     };
-  }, []);
+  }, [selectedDisaster?.id]); // Add selectedDisaster.id as dependency
 
   const fetchDisasters = async () => {
     setLoading(true);
     try {
       const response = await axios.get(`${API_URL}/api/disasters`);
-      setDisasters(response.data);
+      // Ensure response.data is always an array
+      const disasterData = Array.isArray(response.data) ? response.data : [];
+      setDisasters(disasterData);
     } catch (error) {
       console.error('Error fetching disasters:', error);
+      setDisasters([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -89,9 +92,14 @@ function App() {
   const fetchAllResources = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/resources`);
-      setAllResources(response.data.resources || []);
+      // Handle both array and object responses
+      const resourceData = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data?.resources || []);
+      setAllResources(resourceData);
     } catch (error) {
       console.error('Error fetching resources:', error);
+      setAllResources([]); // Set empty array on error
     }
   };
 
@@ -108,9 +116,11 @@ function App() {
   const filterDisastersByTag = async (tag: string) => {
     try {
       const response = await axios.get(`${API_URL}/api/disasters?tag=${tag}`);
-      setDisasters(response.data);
+      const disasterData = Array.isArray(response.data) ? response.data : [];
+      setDisasters(disasterData);
     } catch (error) {
       console.error('Error filtering disasters:', error);
+      setDisasters([]);
     }
   };
 
@@ -120,8 +130,15 @@ function App() {
         await axios.delete(`${API_URL}/api/disasters/${id}`, {
           data: { user_id: 'reliefAdmin' }
         });
+        // Remove from local state immediately for better UX
+        setDisasters(prev => prev.filter(d => d.id !== id));
+        if (selectedDisaster?.id === id) {
+          setSelectedDisaster(null);
+        }
       } catch (error) {
         console.error('Error deleting disaster:', error);
+        // Refresh the list if delete fails
+        fetchDisasters();
       }
     }
   };
@@ -149,7 +166,7 @@ function App() {
                 <div className="filter-buttons">
                   <button onClick={() => fetchDisasters()}>All Disasters</button>
                   <button onClick={() => filterDisastersByTag('flood')}>🌊 Floods</button>
-                  <button onClick={() => filterDisastersByTag('earthquake')}>🏗️ Earthquakes</button>
+                  <button onClick={() => filterDisastersByTag('earthquake')}>🗻 Earthquakes</button>
                   <button onClick={() => filterDisastersByTag('fire')}>🔥 Fires</button>
                   <button onClick={() => filterDisastersByTag('urgent')}>⚡ Urgent</button>
                 </div>
@@ -181,10 +198,11 @@ function App() {
                   <div className="loading">Loading disasters...</div>
                 ) : (
                   <DisasterList 
-                    disasters={disasters} 
+                    disasters={disasters}
                     onSelectDisaster={setSelectedDisaster}
                     selectedDisaster={selectedDisaster}
                     onDeleteDisaster={deleteDisaster}
+                    onRefresh={fetchDisasters}
                   />
                 )}
               </section>
