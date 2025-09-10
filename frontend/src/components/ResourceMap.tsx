@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import { motion } from 'framer-motion';
+import { MapPin, Maximize, RefreshCw } from 'lucide-react';
 
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
@@ -34,6 +36,20 @@ declare global {
     initGoogleMap?: () => void;
   }
 }
+const createMarkerHTML = (icon: string, color: string, size: number = 32) => {
+  const markerDiv = document.createElement('div');
+  markerDiv.style.width = `${size}px`;
+  markerDiv.style.height = `${size}px`;
+  markerDiv.style.borderRadius = '50%';
+  markerDiv.style.backgroundColor = color;
+  markerDiv.style.display = 'flex';
+  markerDiv.style.justifyContent = 'center';
+  markerDiv.style.alignItems = 'center';
+  markerDiv.style.border = '2px solid white';
+  markerDiv.style.boxShadow = '0 2px 5px rgba(0,0,0,0.3)';
+  markerDiv.innerHTML = `<span style="font-size: ${size / 2}px;">${icon}</span>`;
+  return markerDiv;
+};
 
 const ResourceMap: React.FC<ResourceMapProps> = ({ disaster }) => {
   const [resources, setResources] = useState<Resource[]>([]);
@@ -61,45 +77,34 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ disaster }) => {
     }
   }, [mapLoaded, coordinates]);
 
+// src/components/ResourceMap.tsx
+
   const loadGoogleMaps = () => {
-    // Check if API key is available
     const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
     if (!apiKey || apiKey === 'YOUR_API_KEY') {
-      setMapError('Google Maps API key not configured. Please set REACT_APP_GOOGLE_MAPS_API_KEY in your environment variables.');
+      setMapError('Google Maps API key is not configured.');
       return;
     }
 
-    // Check if Google Maps is already loaded
-    if (window.google && window.google.maps) {
+    if (window.google?.maps || scriptLoadedRef.current) {
       setMapLoaded(true);
-      return;
-    }
-
-    // Check if script is already being loaded
-    if (scriptLoadedRef.current || document.querySelector('script[src*="maps.googleapis.com"]')) {
       return;
     }
 
     scriptLoadedRef.current = true;
-
-    // Create script element with proper callback
-    const script = document.createElement('script');
-    const callbackName = `initGoogleMap_${Date.now()}`;
     
-    // Set up the callback function
+    // This creates a unique, temporary function on the global window object
+    const callbackName = `initGoogleMap_${Date.now()}`;
     (window as any)[callbackName] = () => {
       setMapLoaded(true);
-      delete (window as any)[callbackName];
+      // Clean up the function after it's called
+      delete (window as any)[callbackName]; 
     };
     
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&callback=${callbackName}&loading=async`;
-    script.async = true;
-    script.defer = true;
-    
-    script.onerror = () => {
-      setMapError('Google Maps failed to load. Please check your API key and network connection.');
-      scriptLoadedRef.current = false;
-    };
+    const script = document.createElement('script');
+    // We use the dynamic callbackName and add loading=async
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,marker&callback=${callbackName}`;
+    script.async = true; // Fixes the performance warning
     
     document.head.appendChild(script);
   };
@@ -275,165 +280,65 @@ const ResourceMap: React.FC<ResourceMapProps> = ({ disaster }) => {
   };
 
   return (
-    <div className="resource-map">
-      <div className="map-controls">
-        <button onClick={refreshResources} className="control-btn">
-          🔄 Refresh Resources
-        </button>
-        <button onClick={centerMapOnDisaster} className="control-btn">
-          🎯 Center on Disaster
-        </button>
-        <button onClick={geocodeLocation} className="control-btn">
-          📍 Refresh Location
-        </button>
-      </div>
-
-      <div className="location-info">
-        <h3>📍 {disaster.location_name || 'Location Unknown'}</h3>
-        {coordinates && (
-          <>
-            <div className="coordinates">
-              📌 Lat: {coordinates.lat.toFixed(4)}, Lng: {coordinates.lng.toFixed(4)}
-            </div>
-            <div className="formatted-address">
-              🗺️ {coordinates.formatted_address}
-            </div>
-          </>
-        )}
-      </div>
-
-      {/* Google Maps Container */}
-      <div className="map-container">
-        <div ref={mapRef} className="google-map" style={{ width: '100%', height: '400px' }}>
-          {mapError && (
-            <div className="map-error" style={{ 
-              padding: '20px', 
-              textAlign: 'center', 
-              background: '#ffebee', 
-              color: '#c62828',
-              border: '1px solid #ef9a9a',
-              borderRadius: '4px'
-            }}>
-              <p>⚠️ {mapError}</p>
-            </div>
-          )}
-          {!mapLoaded && !mapError && (
-            <div className="map-loading" style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-              background: '#f5f5f5',
-              color: '#666'
-            }}>
-              <div>
-                <p>Loading Google Maps...</p>
-                <div className="loading-spinner" style={{
-                  width: '20px',
-                  height: '20px',
-                  border: '2px solid #ccc',
-                  borderTop: '2px solid #666',
-                  borderRadius: '50%',
-                  animation: 'spin 1s linear infinite',
-                  margin: '0 auto'
-                }}></div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="resources-section">
-        <div className="resources-header">
-          <h4>🛠️ Available Resources ({resources.length})</h4>
-          <div className="legend">
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#ff4444' }}></span>
-              Disaster Zone
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#4CAF50' }}></span>
-              Shelter
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#F44336' }}></span>
-              Medical
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#FF9800' }}></span>
-              Food
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#2196F3' }}></span>
-              Water
-            </div>
-            <div className="legend-item">
-              <span className="legend-color" style={{ backgroundColor: '#9C27B0' }}></span>
-              Supplies
-            </div>
+<div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      {/* Map and Info */}
+      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
+        <div style={{ position: 'relative', borderRadius: 'var(--border-radius-lg)', overflow: 'hidden', border: '1px solid var(--border-color)' }}>
+          <div ref={mapRef} style={{ width: '100%', height: '450px', backgroundColor: 'var(--neutral-lightest)' }}>
+            {mapError && <div className="map-feedback-overlay">⚠️ {mapError}</div>}
+            {!mapLoaded && !mapError && <div className="map-feedback-overlay">Loading Map...</div>}
           </div>
         </div>
-        {loading ? (
-          <div className="loading">Loading resources...</div>
-        ) : resources.length > 0 ? (
-          <div className="resources-list">
+        
+        {/* Info & Legend */}
+        <div>
+          <h3 style={{marginTop: 0, fontWeight: 700}}>{disaster.location_name}</h3>
+          {coordinates && <p style={{color: 'var(--neutral-medium)', marginTop: '-0.5rem'}}>Lat: {coordinates.lat.toFixed(4)}, Lng: {coordinates.lng.toFixed(4)}</p>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1.5rem' }}>
+              <button onClick={refreshResources} className="btn btn-secondary"><RefreshCw size={14}/> Refresh Resources</button>
+              <button onClick={centerMapOnDisaster} className="btn btn-secondary"><Maximize size={14}/> Center Map</button>
+          </div>
+          
+          <h4 style={{fontWeight: 600}}>Legend</h4>
+          <div style={{display: 'flex', flexDirection: 'column', gap: '0.5rem'}}>
+            {/* Legend Items Here */}
+            <div className="legend-item"><span className="legend-dot" style={{backgroundColor: '#de350b'}}/> Disaster Zone</div>
+            <div className="legend-item"><span className="legend-dot" style={{backgroundColor: '#36b37e'}}/> Shelter</div>
+            <div className="legend-item"><span className="legend-dot" style={{backgroundColor: '#ffab00'}}/> Food / Water</div>
+            <div className="legend-item"><span className="legend-dot" style={{backgroundColor: '#0052cc'}}/> Supplies / Medical</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Resources List */}
+      <div>
+        <h3 style={{fontWeight: 600}}>Resources ({resources.length})</h3>
+        {resources.length > 0 ? (
+          <div style={{ maxHeight: '250px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem', paddingRight: '0.5rem' }}>
             {resources.map((resource, index) => (
-              <div key={resource.id} className="resource-item">
-                <div className="resource-header">
-                  <span className="resource-icon">
-                    {getResourceIcon(resource.type)}
-                  </span>
-                  <span className="resource-name">{resource.name}</span>
-                  <span 
-                    className="resource-type"
-                    style={{ backgroundColor: getResourceColor(resource.type) }}
-                  >
-                    {resource.type}
-                  </span>
+              <motion.div key={resource.id} className="resource-item" initial={{opacity: 0, x: -20}} animate={{opacity: 1, x: 0}} transition={{delay: index * 0.05}}>
+                <div>
+                  <p style={{fontWeight: 600, margin: 0}}>{resource.name}</p>
+                  <span style={{fontSize: '0.8rem', color: 'var(--neutral-medium)'}}>{resource.type}</span>
                 </div>
-                <div className="resource-location">
-                  📍 {resource.location_name}
-                </div>
-                <div className="resource-actions">
-                  <button 
-                    onClick={() => {
-                      if (googleMapRef.current && markersRef.current[index + 1]) {
-                        // Focus on this resource marker (index + 1 because disaster marker is at index 0)
-                        const marker = markersRef.current[index + 1];
-                        googleMapRef.current.setCenter(marker.getPosition());
-                        googleMapRef.current.setZoom(15);
-                        // Trigger the info window
-                        if (window.google?.maps?.event) {
-                          window.google.maps.event.trigger(marker, 'click');
-                        }
-                      }
-                    }}
-                    className="resource-action-btn"
-                  >
-                    📍 Show on Map
-                  </button>
-                </div>
-              </div>
+                <button className="btn-icon"><MapPin size={16}/></button>
+              </motion.div>
             ))}
           </div>
-        ) : (
-          <div className="no-resources">
-            <p>📦 No resources mapped yet.</p>
-            <small>Resources will appear here as they are reported and will be shown on the map above.</small>
-          </div>
-        )}
+        ) : <p>No resources reported for this incident yet.</p>}
       </div>
 
-      <style>
-        {`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}
-      </style>
+      <style>{`
+        .map-feedback-overlay { display: flex; align-items: center; justify-content: center; height: 100%; font-weight: 500; color: var(--neutral-medium); }
+        .legend-item { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+        .resource-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background-color: var(--neutral-lightest); border-radius: var(--border-radius-md); border: 1px solid var(--border-color); }
+        .btn-icon { background: none; border: none; padding: 0.4rem; border-radius: 50%; cursor: pointer; color: var(--neutral-medium); transition: var(--transition-fast); }
+        .btn-icon:hover { background-color: var(--neutral-light); color: var(--primary-blue); }
+      `}</style>
     </div>
   );
+
 };
 
 export default ResourceMap;
