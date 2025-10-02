@@ -1,4 +1,3 @@
-// src/App.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
@@ -18,7 +17,7 @@ import './App.css';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 const socket = io(API_URL);
 
-// Interfaces (keep them in a separate types file in a real project)
+// Interfaces
 export interface Disaster {
   id: string;
   title: string;
@@ -53,12 +52,20 @@ function App() {
         axios.get(`${API_URL}/health`)
       ]);
       
-      setDisasters(Array.isArray(disastersRes.data) ? disastersRes.data : []);
-      setAllResources(resourcesRes.data?.resources || []);
+      // FIX: Extract disasters array from nested response object
+      const disastersData = disastersRes.data.disasters || disastersRes.data || [];
+      setDisasters(Array.isArray(disastersData) ? disastersData : []);
+      
+      // FIX: Handle resources response structure
+      const resourcesData = resourcesRes.data.resources || resourcesRes.data || [];
+      setAllResources(Array.isArray(resourcesData) ? resourcesData : []);
+      
       setSystemHealth(healthRes.data);
 
     } catch (error) {
       console.error('Failed to fetch initial data:', error);
+      setDisasters([]);
+      setAllResources([]);
       setSystemHealth({ status: 'ERROR', error: 'API not responding' });
     } finally {
       setIsLoading(false);
@@ -72,16 +79,26 @@ function App() {
     socket.on('disaster_created', (newDisaster: Disaster) => {
       setDisasters(prev => [newDisaster, ...prev]);
     });
+    socket.on('disaster_updated', (updatedDisaster: Disaster) => {
+      setDisasters(prev => prev.map(d => d.id === updatedDisaster.id ? updatedDisaster : d));
+    });
     socket.on('disaster_deleted', ({ id }: { id: string }) => {
       setDisasters(prev => prev.filter(d => d.id !== id));
     });
-    socket.on('resources_updated', () => {
-        axios.get(`${API_URL}/api/resources`).then(res => setAllResources(res.data?.resources || []));
+    socket.on('resources_updated', async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/resources`);
+        const resourcesData = res.data.resources || res.data || [];
+        setAllResources(Array.isArray(resourcesData) ? resourcesData : []);
+      } catch (error) {
+        console.error('Failed to fetch resources:', error);
+      }
     });
 
     return () => {
       socket.off('connect');
       socket.off('disaster_created');
+      socket.off('disaster_updated');
       socket.off('disaster_deleted');
       socket.off('resources_updated');
     };
@@ -106,6 +123,17 @@ function App() {
         return <DashboardOverview {...viewProps} systemHealth={systemHealth} />;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="App" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="loading-spinner" style={{ margin: '0 auto 1rem' }} />
+          <p>Loading ResponseGrid...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="App">
