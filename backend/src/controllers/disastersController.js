@@ -96,67 +96,66 @@ class DisastersController {
   }
 
   static async getDisasters(req, res) {
-    try {
-      const { tag, owner_id, limit = 50, offset = 0 } = req.query;
-      
-      let query = supabase
-        .from('disasters')
-        .select('*')
-        .order('created_at', { ascending: false });
+  try {
+    const { tag, owner_id, limit = 50, offset = 0 } = req.query;
+    
+    let query = supabase
+      .from('disasters')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-      // Add pagination
-      const limitNum = Math.min(parseInt(limit) || 50, 100); // Max 100 items
-      const offsetNum = parseInt(offset) || 0;
-      query = query.range(offsetNum, offsetNum + limitNum - 1);
+    const limitNum = Math.min(parseInt(limit) || 50, 100);
+    const offsetNum = parseInt(offset) || 0;
+    query = query.range(offsetNum, offsetNum + limitNum - 1);
+    
+    if (tag) {
+      query = query.contains('tags', [tag]);
+    }
+    
+    if (owner_id) {
+      query = query.eq('owner_id', owner_id);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('Database error:', error);
       
-      if (tag) {
-        query = query.contains('tags', [tag]);
-      }
-      
-      if (owner_id) {
-        query = query.eq('owner_id', owner_id);
-      }
-      
-      const { data, error } = await query;
-      
-      if (error) {
-        console.error('Database error:', error);
-        
-        // Check if it's a table/column issue
-        if (error.message.includes('relation') || error.message.includes('column')) {
-          return res.status(500).json({ 
-            error: 'Database schema issue - please check table structure',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
-          });
-        }
-        
+      if (error.message.includes('relation') || error.message.includes('column')) {
         return res.status(500).json({ 
-          error: 'Failed to fetch disasters',
+          error: 'Database schema issue - please check table structure',
           details: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
       }
       
-      // Return empty array if no data, with metadata
-      res.json({
-        disasters: data || [],
-        pagination: {
-          limit: limitNum,
-          offset: offsetNum,
-          count: (data || []).length
-        },
-        filters: {
-          tag: tag || null,
-          owner_id: owner_id || null
-        }
-      });
-    } catch (error) {
-      console.error('Get disasters error:', error);
-      res.status(500).json({ 
-        error: 'Internal server error',
+      return res.status(500).json({ 
+        error: 'Failed to fetch disasters',
         details: process.env.NODE_ENV === 'development' ? error.message : undefined
       });
     }
+    
+    // CRITICAL FIX: Ensure response structure is consistent
+    res.json({
+      disasters: data || [],
+      pagination: {
+        limit: limitNum,
+        offset: offsetNum,
+        count: (data || []).length
+      },
+      filters: {
+        tag: tag || null,
+        owner_id: owner_id || null
+      }
+    });
+  } catch (error) {
+    console.error('Get disasters error:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      disasters: [], // Provide empty array as fallback
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
+}
 
   static async updateDisaster(req, res) {
     try {
