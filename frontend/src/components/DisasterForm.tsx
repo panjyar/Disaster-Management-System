@@ -57,89 +57,37 @@ const DisasterForm: React.FC = () => {
       <h2 style={{ marginTop: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         📢 Report New Disaster
       </h2>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-        <div>
-          <label htmlFor="title" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Title *</label>
-          <input
-            id="title"
-            type="text"
-            value={formData.title}
-            onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-            required
-            placeholder="e.g., NYC Flooding Emergency"
-            className="form-input"
-          />
-        </div>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div className="form-group">
+        <label htmlFor="title" className="form-label">Title *</label>
+        <input id="title" type="text" value={formData.title} onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))} required placeholder="e.g., Downtown Power Outage" className="form-input" />
+      </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
-          <div>
-            <label htmlFor="location" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Location</label>
-            <div style={{ position: 'relative' }}>
-              <MapPin style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', color: '#9ca3af', pointerEvents: 'none' }} />
-              <input
-                id="location"
-                type="text"
-                value={formData.location_name}
-                onChange={(e) => setFormData(prev => ({ ...prev, location_name: e.target.value }))}
-                placeholder="e.g., Manhattan, NYC"
-                className="form-input"
-                style={{ paddingLeft: '2.5rem' }}
-              />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="tags" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Tags</label>
-            <div style={{ position: 'relative' }}>
-              <Tag style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', color: '#9ca3af', pointerEvents: 'none' }} />
-              <input
-                id="tags"
-                type="text"
-                value={formData.tags.join(', ')}
-                onChange={handleTagsChange}
-                placeholder="flood, urgent (comma-separated)"
-                className="form-input"
-                style={{ paddingLeft: '2.5rem' }}
-              />
-            </div>
-          </div>
+      <div className="form-group">
+        <label htmlFor="location" className="form-label">Location</label>
+        <div style={{ position: 'relative' }}>
+          <MapPin style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', color: '#9ca3af' }} />
+          <input id="location" type="text" value={formData.location_name} onChange={(e) => setFormData(prev => ({ ...prev, location_name: e.target.value }))} placeholder="e.g., Manhattan, NYC" className="form-input" style={{ paddingLeft: '2.5rem' }} />
         </div>
-
-        <div>
-          <label htmlFor="description" style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.25rem' }}>Description *</label>
-          <textarea
-            id="description"
-            value={formData.description}
-            onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-            required
-            rows={4}
-            placeholder="Describe the disaster situation..."
-            className="form-input"
-          />
+      </div>
+      
+      <div className="form-group">
+        <label htmlFor="tags" className="form-label">Tags</label>
+        <div style={{ position: 'relative' }}>
+          <Tag style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', width: '16px', color: '#9ca3af' }} />
+          <input id="tags" type="text" value={formData.tags.join(', ')} onChange={handleTagsChange} placeholder="urgent, power, infrastructure" className="form-input" style={{ paddingLeft: '2.5rem' }} />
         </div>
+      </div>
 
-        <motion.button
-          type="submit"
-          disabled={loading}
-          whileHover={{ scale: loading ? 1 : 1.02 }}
-          whileTap={{ scale: loading ? 1 : 0.98 }}
-          className="btn btn-primary"
-        >
-          {loading ? (
-            <>
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                style={{ width: '16px', height: '16px', borderWidth: '2px', borderStyle: 'solid', borderColor: 'currentColor', borderTopColor: 'transparent', borderRadius: '50%' }}
-              />
-              Reporting...
-            </>
-          ) : (
-            <>
-              <Send width={16} />
-              Report Disaster
-            </>
-          )}
-        </motion.button>
+      <div className="form-group">
+        <label htmlFor="description" className="form-label">Description *</label>
+        <textarea id="description" value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} required rows={3} placeholder="Describe the situation..." className="form-input" />
+      </div>
+
+      <motion.button type="submit" disabled={loading} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="btn btn-accent" style={{marginTop: '0.5rem'}}>
+        {loading ? <div className="loading-spinner"></div> : <Send width={16} />}
+        {loading ? 'Submitting...' : 'Report Incident'}
+      </motion.button>
 
         {message.text && (
           <motion.div

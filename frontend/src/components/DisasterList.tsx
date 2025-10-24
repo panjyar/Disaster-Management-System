@@ -3,21 +3,16 @@ import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   MapPin,
-  Tag,
-  User,
   Clock,
-  Edit,
   Trash2,
+  MessageSquare,
   ChevronDown,
   ChevronUp,
-  MessageSquare,
-  RefreshCcw,
-  Folder,
   CheckCircle,
   XCircle,
 } from "lucide-react";
 
-const API_URL = "http://localhost:5000";
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 interface Disaster {
   id: string;
@@ -53,14 +48,8 @@ const DisasterList: React.FC<DisasterListProps> = ({
   onDeleteDisaster,
   onRefresh,
 }) => {
-  const [socialReports, setSocialReports] = useState<
-    Record<string, SocialMediaReport[]>
-  >({});
-  const [loadingSocial, setLoadingSocial] = useState<Record<string, boolean>>(
-    {}
-  );
-  const [editingDisaster, setEditingDisaster] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<Disaster>>({});
+  const [socialReports, setSocialReports] = useState<Record<string, SocialMediaReport[]>>({});
+  const [loadingSocial, setLoadingSocial] = useState<Record<string, boolean>>({});
   const [expandedReports, setExpandedReports] = useState<string[]>([]);
 
   const cardVariants = {
@@ -75,50 +64,32 @@ const DisasterList: React.FC<DisasterListProps> = ({
         ? prev.filter((id) => id !== disasterId)
         : [...prev, disasterId]
     );
-    if (!socialReports[disasterId]) {
+    if (!socialReports[disasterId] && !loadingSocial[disasterId]) {
       fetchSocialReports(disasterId);
     }
   };
 
   const fetchSocialReports = async (disasterId: string) => {
-    if (loadingSocial[disasterId]) return;
     setLoadingSocial((prev) => ({ ...prev, [disasterId]: true }));
     try {
-      const response = await axios.get(
-        `${API_URL}/api/social-media/${disasterId}`
-      );
-      setSocialReports((prev) => ({ ...prev, [disasterId]: response.data }));
+      const response = await axios.get(`${API_URL}/api/social-media/${disasterId}`);
+      const reportsData = Array.isArray(response.data) ? response.data : [];
+      setSocialReports((prev) => ({ ...prev, [disasterId]: reportsData }));
     } catch (error) {
       console.error("Error fetching social reports:", error);
-      setSocialReports((prev) => ({ ...prev, [disasterId]: [] })); // Set empty array on error
+      setSocialReports((prev) => ({ ...prev, [disasterId]: [] }));
     } finally {
       setLoadingSocial((prev) => ({ ...prev, [disasterId]: false }));
     }
   };
 
-  const updateDisaster = async () => {
-    if (!editingDisaster) return;
-    try {
-      await axios.put(`${API_URL}/api/disasters/${editingDisaster}`, {
-        ...editForm,
-        user_id: "reliefAdmin",
-      });
-      setEditingDisaster(null);
-      setEditForm({});
-      onRefresh();
-    } catch (error) {
-      console.error("Error updating disaster:", error);
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'critical': return '#de350b';
+      case 'high': return '#ff7a00';
+      case 'medium': return '#ffab00';
+      default: return '#6b778c';
     }
-  };
-
-  const startEdit = (disaster: Disaster) => {
-    setEditingDisaster(disaster.id);
-    setEditForm({
-      title: disaster.title,
-      location_name: disaster.location_name,
-      description: disaster.description,
-      tags: disaster.tags,
-    });
   };
 
   return (
@@ -136,16 +107,13 @@ const DisasterList: React.FC<DisasterListProps> = ({
           {disasters.map((disaster) => (
             <motion.div
               key={disaster.id}
-              onClick={() => onSelectDisaster(disaster)}
               className="card"
               style={{
                 cursor: "pointer",
                 borderWidth: "2px",
-                // Change this line
-                borderColor:
-                  selectedDisaster?.id === disaster.id
-                    ? "var(--primary-blue)"
-                    : "rgba(0, 82, 204, 0)", // Use transparent version of primary blue
+                borderColor: selectedDisaster?.id === disaster.id
+                  ? "var(--primary-blue)"
+                  : "transparent",
                 padding: "1.25rem",
                 position: "relative",
               }}
@@ -157,7 +125,8 @@ const DisasterList: React.FC<DisasterListProps> = ({
               whileHover={{
                 borderColor: "rgba(0, 82, 204, 0.5)",
                 transform: "translateY(-3px)",
-              }} // Animate to a semi-transparent border
+              }}
+              onClick={() => onSelectDisaster(disaster)}
             >
               <div
                 style={{
@@ -181,6 +150,20 @@ const DisasterList: React.FC<DisasterListProps> = ({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      toggleReports(disaster.id);
+                    }}
+                    className="btn-icon"
+                    title="Social Reports"
+                  >
+                    {expandedReports.includes(disaster.id) ? (
+                      <ChevronUp size={16} />
+                    ) : (
+                      <MessageSquare size={16} />
+                    )}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
                       onDeleteDisaster(disaster.id);
                     }}
                     className="btn-icon-danger"
@@ -201,25 +184,11 @@ const DisasterList: React.FC<DisasterListProps> = ({
                   marginBottom: "1rem",
                 }}
               >
-                <span
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.3rem",
-                  }}
-                >
-                  <MapPin size={14} />{" "}
-                  {disaster.location_name || "Location TBD"}
+                <span style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                  <MapPin size={14} /> {disaster.location_name || "Location TBD"}
                 </span>
-                <span
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.3rem",
-                  }}
-                >
-                  <Clock size={14} />{" "}
-                  {new Date(disaster.created_at).toLocaleDateString()}
+                <span style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                  <Clock size={14} /> {new Date(disaster.created_at).toLocaleDateString()}
                 </span>
               </div>
 
@@ -230,15 +199,100 @@ const DisasterList: React.FC<DisasterListProps> = ({
                   </span>
                 ))}
               </div>
+
+              {/* Social Reports Expansion */}
+              {expandedReports.includes(disaster.id) && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  style={{
+                    marginTop: "1rem",
+                    paddingTop: "1rem",
+                    borderTop: "1px solid var(--border-color)",
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <h4 style={{ fontSize: "0.9rem", fontWeight: 600, marginBottom: "0.75rem" }}>
+                    Social Intelligence
+                  </h4>
+                  {loadingSocial[disaster.id] ? (
+                    <div style={{ textAlign: "center", padding: "1rem" }}>
+                      <div className="loading-spinner" style={{ margin: "0 auto" }} />
+                    </div>
+                  ) : socialReports[disaster.id]?.length > 0 ? (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                      {socialReports[disaster.id].slice(0, 3).map((report) => (
+                        <div
+                          key={report.id}
+                          style={{
+                            backgroundColor: "var(--neutral-lightest)",
+                            padding: "0.75rem",
+                            borderRadius: "var(--border-radius-sm)",
+                            fontSize: "0.85rem",
+                            borderLeft: `3px solid ${getPriorityColor(report.priority)}`,
+                          }}
+                        >
+                          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.25rem" }}>
+                            <strong>@{report.user}</strong>
+                            {report.verified && <CheckCircle size={14} color="var(--success-green)" />}
+                          </div>
+                          <p style={{ margin: "0.25rem 0", color: "var(--neutral-dark)" }}>
+                            {report.content}
+                          </p>
+                          <span style={{ fontSize: "0.75rem", color: "var(--neutral-medium)" }}>
+                            {new Date(report.timestamp).toLocaleTimeString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ fontSize: "0.85rem", color: "var(--neutral-medium)", fontStyle: "italic" }}>
+                      No social media reports available
+                    </p>
+                  )}
+                </motion.div>
+              )}
             </motion.div>
           ))}
         </AnimatePresence>
       )}
+      
       <style>{`
-        .btn-icon-danger { background: none; border: none; padding: 0.4rem; border-radius: 50%; cursor: pointer; color: var(--neutral-medium); transition: var(--transition-fast); }
-        .btn-icon-danger:hover { background-color: #ffebe6; color: var(--alert-red); }
-        .tag { background-color: var(--neutral-lightest); color: var(--neutral-dark); padding: 0.25rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 500; }
-        .tag:first-letter { text-transform: uppercase; }
+        .btn-icon {
+          background: none;
+          border: none;
+          padding: 0.4rem;
+          border-radius: 50%;
+          cursor: pointer;
+          color: var(--neutral-medium);
+          transition: var(--transition-fast);
+        }
+        .btn-icon:hover {
+          background-color: var(--neutral-lightest);
+          color: var(--primary-blue);
+        }
+        .btn-icon-danger {
+          background: none;
+          border: none;
+          padding: 0.4rem;
+          border-radius: 50%;
+          cursor: pointer;
+          color: var(--neutral-medium);
+          transition: var(--transition-fast);
+        }
+        .btn-icon-danger:hover {
+          background-color: #ffebe6;
+          color: var(--alert-red);
+        }
+        .tag {
+          background-color: var(--neutral-lightest);
+          color: var(--neutral-dark);
+          padding: 0.25rem 0.6rem;
+          border-radius: 999px;
+          font-size: 0.75rem;
+          font-weight: 500;
+        }
       `}</style>
     </div>
   );
