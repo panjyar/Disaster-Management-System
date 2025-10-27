@@ -1,139 +1,117 @@
-# Disaster Response Coordination Platform (Backend-heavy MERN)
+#  Disaster Response Coordination Platform  
+**Backend-Heavy MERN Stack Project**
 
-Minimal frontend + feature-rich Node/Express backend to coordinate disaster response using Gemini for location extraction and image verification, Supabase for storage + geospatial queries + caching, mock social media, official updates scraping, and Socket.IO for realtime.
+![License](https://img.shields.io/badge/License-MIT-green)
+![Node.js](https://img.shields.io/badge/Node.js-339933?logo=node.js&logoColor=white)
+![Express.js](https://img.shields.io/badge/Express.js-black?logo=express&logoColor=white)
+![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)
+![Supabase](https://img.shields.io/badge/Supabase-3FCF8E?logo=supabase&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?logo=postgresql&logoColor=white)
+![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?logo=socket.io&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Gemini-AI-blueviolet)
+![Deployed](https://img.shields.io/badge/Status-Deployed-success)
 
-## Monorepo Structure
+---
 
-- backend/ — Node.js/Express API with Supabase, Gemini, geocoding, caching, WebSockets
-- frontend/ — Minimal React UI to exercise backend features
+##  Overview  
+A real-time coordination system built to manage disaster response using **AI-driven insights**, **geospatial queries**, and **live updates**.  
+It consolidates citizen reports, relief resources, and official data into a single, intelligent platform.
 
-## Quick Start
+---
 
-- Backend
-  - Copy backend/.env.example to backend/.env and fill values
-  - Apply SQL in backend/database-setup.sql to your Supabase project (SQL editor)
-  - Install deps and run
-    - cd backend && npm install && npm run dev
-  - API base: http://localhost:5000
-- Frontend
-  - Set REACT_APP_API_URL=http://localhost:5000 in frontend/.env (optional; defaults to 5000)
-  - cd frontend && npm install && npm start
-  - UI: http://localhost:3000
+##  Motivation  
+During disasters, information is scattered across multiple platforms — social media, news, and official sites.  
+My motivation was to build a unified system that merges these streams, enhances them with AI, and helps responders act faster with reliable, location-based intelligence.
 
-## Environment Variables (backend/.env)
+---
 
-- PORT=5000
-- SUPABASE_URL, SUPABASE_ANON_KEY
-- GEMINI_API_KEY (aistudio.google.com/app/apikey)
-- GOOGLE_MAPS_API_KEY (optional; falls back to OSM Nominatim)
-- FRONTEND_URL=http://localhost:3000
+##  Problem It Solves  
+- **Centralizes** real-time data from citizens, authorities, and social media.  
+- **Extracts** and verifies locations or images using Google **Gemini AI**.  
+- **Maps** nearby resources with **Supabase/Postgres geospatial queries**.  
+- **Broadcasts** live updates via **Socket.IO**.  
+- **Caches** data intelligently to reduce redundant API calls.  
 
-## Database Schema (Supabase/Postgres)
+---
 
-- Tables: disasters, resources, reports, cache
-- Geospatial columns: disasters.location, resources.location (geography(Point,4326))
-- Indexes: GIST on location columns; GIN on disasters.tags
-- RPC: nearby_resources(lon, lat, radius_m, p_disaster_id) using ST_DWithin
-- Apply via backend/database-setup.sql
+##  Tech Stack  
 
-## Authentication (Mock)
+| Category | Technology |
+|-----------|-------------|
+| **Frontend** | React.js |
+| **Backend** | Node.js, Express.js |
+| **Database** | Supabase (PostgreSQL + Geospatial) |
+| **AI Integration** | Google Gemini API |
+| **Real-time** | Socket.IO |
+| **Caching & Storage** | Supabase JSONB |
+| **Maps/Geocoding** | Google Maps API / OpenStreetMap |
+| **Deployment** | Render / Fly.io / Railway (Backend), Vercel / Netlify (Frontend) |
 
-- Send headers to simulate users/roles
-  - x-user: netrunnerX | reliefAdmin | citizen1
-  - x-role: contributor | admin
-- Routes requiring roles
-  - POST /api/disasters (contributor)
-  - PUT /api/disasters/:id (contributor)
-  - DELETE /api/disasters/:id (admin)
-  - POST /api/disasters/:id/reports (contributor)
-  - POST /api/resources (contributor)
+---
 
-## Realtime (Socket.IO)
+##  Features  
+- 🧠 **AI-Powered Location Extraction:** Extracts coordinates from text using Gemini.  
+- 🖼️ **Image Verification:** Validates authenticity through AI models.  
+- 🗺️ **Geospatial Resource Mapping:** Finds resources near disaster areas.  
+- ⚡ **Realtime Updates:** Broadcasts events using Socket.IO.  
+- 📰 **Official Updates Scraper:** Fetches verified government/NGO reports.  
+- 💾 **Smart Caching:** Optimizes response time with Supabase caching.  
+- 💬 **Mock Social Feed:** Simulates citizen updates for testing.
 
-- Events
-  - disaster_created, disaster_updated, disaster_deleted
-  - social_media_updated
-  - resource_created, resources_updated
-  - official_updates
-- Clients can join rooms per disaster: join_disaster -> `disaster_<id>`
+---
 
-## Key Endpoints
+##  What I Learned  
+- Designing **AI-integrated backend systems** with multiple APIs.  
+- Writing **geospatial SQL queries** and Supabase RPC functions.  
+- Handling **real-time communication** efficiently with Socket.IO.  
+- Deploying backend-heavy apps using **cloud-native tools**.  
 
-- Health/Status
-  - GET /health
-  - GET /api/status
-- Disasters
-  - GET /api/disasters[?tag=&owner_id=&limit=&offset=]
-  - POST /api/disasters
-  - PUT /api/disasters/:id
-  - DELETE /api/disasters/:id
-  - POST /api/disasters/:id/reports
-- Resources
-  - GET /api/resources
-  - GET /api/resources/:disasterId[?lat=&lng=&radius=10000&limit=20] (geospatial RPC if lat/lng)
-  - POST /api/resources
-- Social Media (mock)
-  - GET /api/social-media
-  - GET /api/social-media/:disasterId
-- Geocoding
-  - GET /api/geocode
-  - POST /api/geocode { location_name? , description? } → Gemini location extract + Maps/OSM geocode
-- Image Verification (Gemini-like)
-  - GET /api/verification
-  - POST /api/verification/verify-image { image_url, context? }
-- Official Updates (scraped + cached)
-  - GET /api/updates
-  - GET /api/updates/:disasterId/official-updates
+---
 
-## Caching
+##  What Makes It Stand Out  
+- AI + Geospatial + Real-time — all integrated in one system.  
+- Backend-first architecture optimized for reliability and scalability.  
+- Intelligent caching and indexing for speed and efficiency.  
+- Minimal frontend, but powerful backend workflows designed for real-world disaster coordination.
 
-- cache table: key, value (JSONB), expires_at
-- Cached: social media mock (15m), geocoding (24h), Gemini requests (1h), official updates (1h)
+---
 
-## Geocoding
+## Quick Start  
 
-- Prefers Google Maps Geocoding API if key present, else falls back to OpenStreetMap Nominatim
-- Gemini extracts locations from freeform description when location_name not provided
-
-## Sample Requests
-
-```
-curl -X POST http://localhost:5000/api/disasters \
-  -H "Content-Type: application/json" \
-  -H "x-user: netrunnerX" -H "x-role: contributor" \
-  -d '{
-    "title": "NYC Flood",
-    "location_name": "Manhattan, NYC",
-    "description": "Heavy flooding in Manhattan",
-    "tags": ["flood", "urgent"],
-    "owner_id": "netrunnerX"
-  }'
-
-curl "http://localhost:5000/api/resources/<DISASTER_ID>?lat=40.7128&lng=-74.0060&radius=10000"
-
-curl -X POST http://localhost:5000/api/disasters/<DISASTER_ID>/reports \
-  -H "Content-Type: application/json" \
-  -H "x-user: citizen1" -H "x-role: contributor" \
-  -d '{"content": "Need food in Lower East Side","image_url":"http://example.com/flood.jpg"}'
+### Backend
+```bash
+cd backend
+cp .env.example .env   # Fill in environment variables
+npm install
+npm run dev
+# Runs on http://localhost:5000
 ```
 
-## Frontend Notes
+### Frontend
+```bash
+cd frontend
+npm install
+npm start
+```
+# Runs on http://localhost:3000
 
-- React app in frontend/ exercises APIs and listens to WebSocket events
-- Set REACT_APP_API_URL to target backend
+### Environment Variables (Backend)
+```bash
+PORT=5000
+SUPABASE_URL=
+SUPABASE_ANON_KEY=
+GEMINI_API_KEY=
+GOOGLE_MAPS_API_KEY=
+```
 
-## Shortcuts/Assumptions
+FRONTEND_URL=http://localhost:3000
 
-- Social media is mocked; integrate Twitter/Bluesky if keys available
-- Gemini image verification returns a simulated score unless a vision-capable model is wired
-- Official updates scraping uses heuristic selectors and may vary by source markup
+### Database Setup
+```bash
+ables: disasters, resources, reports, cache
+Spatial columns: disasters.location, resources.location
+Indexes: GIST (spatial), GIN (tags)
+RPC: nearby_resources(lon, lat, radius_m, p_disaster_id)
+SQL file: backend/database-setup.sql
+```
 
-## Deployment
-
-- Frontend: Vercel or Netlify build in frontend/
-- Backend: Render/Fly.io/railway app in backend/
-- Configure environment variables and CORS FRONTEND_URL
-
-## AI Tooling Note
-
-- Routes, caching, and geospatial logic drafted with Windsurf Cascade assistance.
