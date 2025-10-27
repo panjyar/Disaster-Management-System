@@ -4,7 +4,7 @@ import { Server as SocketIO } from 'socket.io';
 import listEndpoints from 'express-list-endpoints';
 
 console.log(listEndpoints(app)); 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 const server = createServer(app);
 
 const io = new SocketIO(server, {

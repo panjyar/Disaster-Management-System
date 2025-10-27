@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import supabase from '../utils/supabase.js';
+import auth from '../middleware/auth.js';
 
 const router = Router();
 
@@ -86,6 +87,30 @@ router.get('/:disasterId', async (req, res) => {
       // Continue anyway - might be using mock data
     }
     
+    // If lat/lng provided, attempt geospatial RPC first
+    if (lat && lng) {
+      try {
+        const lon = parseFloat(lng);
+        const latNum = parseFloat(lat);
+        const rad = parseInt(radius) || 10000;
+        const { data: geoData, error: geoError } = await supabase.rpc('nearby_resources', {
+          lon,
+          lat: latNum,
+          radius_m: rad,
+          p_disaster_id: disasterId
+        });
+
+        if (!geoError && Array.isArray(geoData)) {
+          const io = req.app.get('io');
+          if (io) io.to(`disaster_${disasterId}`).emit('resources_updated', geoData);
+          return res.json(geoData);
+        }
+      } catch (geoEx) {
+        console.warn('Geospatial RPC failed, falling back:', geoEx.message);
+      }
+    }
+
+    // Fallback: simple query by disaster_id
     let query = supabase
       .from('resources')
       .select('*')
@@ -115,6 +140,9 @@ router.get('/:disasterId', async (req, res) => {
       return res.json(getMockResources(disasterId));
     }
     
+    // Emit update for consumers
+    const io = req.app.get('io');
+    if (io) io.to(`disaster_${disasterId}`).emit('resources_updated', data);
     res.json(data);
   } catch (error) {
     console.error('Resources fetch error:', error);
@@ -132,7 +160,7 @@ router.get('/:disasterId', async (req, res) => {
 });
 
 // POST /api/resources - Create new resource
-router.post('/', async (req, res) => {
+router.post('/', auth('contributor'), async (req, res) => {
   try {
     const { disaster_id, name, type, location_name, description, contact_info, availability } = req.body;
     

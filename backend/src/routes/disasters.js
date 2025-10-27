@@ -1,5 +1,7 @@
 import { Router } from 'express';
 import DisastersController from '../controllers/disastersController.js';
+import supabase from '../utils/supabase.js';
+import auth from '../middleware/auth.js';
 
 const router = Router();
 
@@ -8,10 +10,10 @@ router.get('/health', DisastersController.healthCheck);
 
 // Existing routes
 router.get('/', DisastersController.getDisasters);
-router.post('/', DisastersController.createDisaster);
-router.put('/:id', DisastersController.updateDisaster);
-router.delete('/:id', DisastersController.deleteDisaster);
-router.post('/:id/reports', DisastersController.createReport);
+router.post('/', auth('contributor'), DisastersController.createDisaster);
+router.put('/:id', auth('contributor'), DisastersController.updateDisaster);
+router.delete('/:id', auth('admin'), DisastersController.deleteDisaster);
+router.post('/:id/reports', auth('contributor'), DisastersController.createReport);
 
 // Additional utility routes
 router.get('/:id', async (req, res) => {

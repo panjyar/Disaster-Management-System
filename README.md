@@ -1,46 +1,139 @@
-# Getting Started with Create React App
+# Disaster Response Coordination Platform (Backend-heavy MERN)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Minimal frontend + feature-rich Node/Express backend to coordinate disaster response using Gemini for location extraction and image verification, Supabase for storage + geospatial queries + caching, mock social media, official updates scraping, and Socket.IO for realtime.
 
-## Available Scripts
+## Monorepo Structure
 
-In the project directory, you can run:
+- backend/ — Node.js/Express API with Supabase, Gemini, geocoding, caching, WebSockets
+- frontend/ — Minimal React UI to exercise backend features
 
-### `npm start`
+## Quick Start
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+- Backend
+  - Copy backend/.env.example to backend/.env and fill values
+  - Apply SQL in backend/database-setup.sql to your Supabase project (SQL editor)
+  - Install deps and run
+    - cd backend && npm install && npm run dev
+  - API base: http://localhost:5000
+- Frontend
+  - Set REACT_APP_API_URL=http://localhost:5000 in frontend/.env (optional; defaults to 5000)
+  - cd frontend && npm install && npm start
+  - UI: http://localhost:3000
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+## Environment Variables (backend/.env)
 
-### `npm test`
+- PORT=5000
+- SUPABASE_URL, SUPABASE_ANON_KEY
+- GEMINI_API_KEY (aistudio.google.com/app/apikey)
+- GOOGLE_MAPS_API_KEY (optional; falls back to OSM Nominatim)
+- FRONTEND_URL=http://localhost:3000
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Database Schema (Supabase/Postgres)
 
-### `npm run build`
+- Tables: disasters, resources, reports, cache
+- Geospatial columns: disasters.location, resources.location (geography(Point,4326))
+- Indexes: GIST on location columns; GIN on disasters.tags
+- RPC: nearby_resources(lon, lat, radius_m, p_disaster_id) using ST_DWithin
+- Apply via backend/database-setup.sql
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+## Authentication (Mock)
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- Send headers to simulate users/roles
+  - x-user: netrunnerX | reliefAdmin | citizen1
+  - x-role: contributor | admin
+- Routes requiring roles
+  - POST /api/disasters (contributor)
+  - PUT /api/disasters/:id (contributor)
+  - DELETE /api/disasters/:id (admin)
+  - POST /api/disasters/:id/reports (contributor)
+  - POST /api/resources (contributor)
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Realtime (Socket.IO)
 
-### `npm run eject`
+- Events
+  - disaster_created, disaster_updated, disaster_deleted
+  - social_media_updated
+  - resource_created, resources_updated
+  - official_updates
+- Clients can join rooms per disaster: join_disaster -> `disaster_<id>`
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+## Key Endpoints
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- Health/Status
+  - GET /health
+  - GET /api/status
+- Disasters
+  - GET /api/disasters[?tag=&owner_id=&limit=&offset=]
+  - POST /api/disasters
+  - PUT /api/disasters/:id
+  - DELETE /api/disasters/:id
+  - POST /api/disasters/:id/reports
+- Resources
+  - GET /api/resources
+  - GET /api/resources/:disasterId[?lat=&lng=&radius=10000&limit=20] (geospatial RPC if lat/lng)
+  - POST /api/resources
+- Social Media (mock)
+  - GET /api/social-media
+  - GET /api/social-media/:disasterId
+- Geocoding
+  - GET /api/geocode
+  - POST /api/geocode { location_name? , description? } → Gemini location extract + Maps/OSM geocode
+- Image Verification (Gemini-like)
+  - GET /api/verification
+  - POST /api/verification/verify-image { image_url, context? }
+- Official Updates (scraped + cached)
+  - GET /api/updates
+  - GET /api/updates/:disasterId/official-updates
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+## Caching
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+- cache table: key, value (JSONB), expires_at
+- Cached: social media mock (15m), geocoding (24h), Gemini requests (1h), official updates (1h)
 
-## Learn More
+## Geocoding
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+- Prefers Google Maps Geocoding API if key present, else falls back to OpenStreetMap Nominatim
+- Gemini extracts locations from freeform description when location_name not provided
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Sample Requests
+
+```
+curl -X POST http://localhost:5000/api/disasters \
+  -H "Content-Type: application/json" \
+  -H "x-user: netrunnerX" -H "x-role: contributor" \
+  -d '{
+    "title": "NYC Flood",
+    "location_name": "Manhattan, NYC",
+    "description": "Heavy flooding in Manhattan",
+    "tags": ["flood", "urgent"],
+    "owner_id": "netrunnerX"
+  }'
+
+curl "http://localhost:5000/api/resources/<DISASTER_ID>?lat=40.7128&lng=-74.0060&radius=10000"
+
+curl -X POST http://localhost:5000/api/disasters/<DISASTER_ID>/reports \
+  -H "Content-Type: application/json" \
+  -H "x-user: citizen1" -H "x-role: contributor" \
+  -d '{"content": "Need food in Lower East Side","image_url":"http://example.com/flood.jpg"}'
+```
+
+## Frontend Notes
+
+- React app in frontend/ exercises APIs and listens to WebSocket events
+- Set REACT_APP_API_URL to target backend
+
+## Shortcuts/Assumptions
+
+- Social media is mocked; integrate Twitter/Bluesky if keys available
+- Gemini image verification returns a simulated score unless a vision-capable model is wired
+- Official updates scraping uses heuristic selectors and may vary by source markup
+
+## Deployment
+
+- Frontend: Vercel or Netlify build in frontend/
+- Backend: Render/Fly.io/railway app in backend/
+- Configure environment variables and CORS FRONTEND_URL
+
+## AI Tooling Note
+
+- Routes, caching, and geospatial logic drafted with Windsurf Cascade assistance.

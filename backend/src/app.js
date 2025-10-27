@@ -8,6 +8,7 @@ import resourcesRouter from './routes/resources.js';
 import socialMediaRouter from './routes/socialMedia.js';
 import geocodeRouter from './routes/geocode.js';
 import verificationRouter from './routes/verification.js';
+import updatesRouter from './routes/updates.js';
 
 // Import controllers for additional routes
 import DisastersController from './controllers/disastersController.js';
@@ -65,7 +66,8 @@ app.get('/api/status', async (req, res) => {
         'GET /api/geocode': 'Geocoding API info',
         'POST /api/geocode': 'Geocode location',
         'GET /api/verification': 'Verification API info',
-        'POST /api/verification/verify-image': 'Verify image authenticity'
+        'POST /api/verification/verify-image': 'Verify image authenticity',
+        'GET /api/updates': 'List official updates'
       }
     };
 
@@ -94,6 +96,7 @@ app.use('/api/resources', resourcesRouter);
 app.use('/api/social-media', socialMediaRouter);
 app.use('/api/geocode', geocodeRouter);
 app.use('/api/verification', verificationRouter);
+app.use('/api/updates', updatesRouter);
 
 // Root endpoint with API information
 app.get('/', (req, res) => {
