@@ -17,11 +17,22 @@ dotenv.config();
 
 const app = express();
 
+// Build allowed origins
+const prodOrigins = [];
+if (process.env.FRONTEND_URL) prodOrigins.push(process.env.FRONTEND_URL);
+if (process.env.FRONTEND_URLS) {
+  prodOrigins.push(
+    ...process.env.FRONTEND_URLS.split(',').map(s => s.trim()).filter(Boolean)
+  );
+}
+
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? process.env.FRONTEND_URL 
+  origin: process.env.NODE_ENV === 'production'
+    ? prodOrigins
     : ["http://localhost:3000", "http://127.0.0.1:3000"],
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','x-user','x-role'],
   credentials: true
 }));
 

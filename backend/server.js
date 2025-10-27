@@ -7,13 +7,23 @@ console.log(listEndpoints(app));
 const PORT = process.env.PORT || 5000;
 const server = createServer(app);
 
+// Build allowed origins consistent with Express CORS
+const prodOrigins = [];
+if (process.env.FRONTEND_URL) prodOrigins.push(process.env.FRONTEND_URL);
+if (process.env.FRONTEND_URLS) {
+  prodOrigins.push(
+    ...process.env.FRONTEND_URLS.split(',').map(s => s.trim()).filter(Boolean)
+  );
+}
+
 const io = new SocketIO(server, {
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? process.env.FRONTEND_URL 
-      : "http://localhost:3000",
-    methods: ["GET", "POST"]
-    
+      ? prodOrigins 
+      : ["http://localhost:3000", "http://127.0.0.1:3000"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ['Content-Type','x-user','x-role'],
+    credentials: true
   }
 });
 
